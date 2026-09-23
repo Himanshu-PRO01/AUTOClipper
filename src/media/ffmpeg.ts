@@ -25,6 +25,7 @@ export async function run(
 ): Promise<RunResult> {
   return new Promise((resolvePromise, reject) => {
     const child = spawn(binary, args, { windowsHide: true, shell: false });
+    console.log(`[FFMPEG RUN] ${binary} ${args.join(" ")}`);
     let stderr = "";
     let stdout = "";
     let timedOut = false;
@@ -292,7 +293,7 @@ export async function renderClip(
   if (options.cropMode === "face" && typeof options.normalizedX === "number") {
     const normX = Math.max(0.1, Math.min(0.9, options.normalizedX));
     // Scale so both dimensions meet or exceed target, then crop at calculated x-offset
-    const cropXExpr = `max(0,min(iw-${targetW},iw*${normX}-${targetW}/2))`;
+    const cropXExpr = `max(0\\,min(iw-${targetW}\\,iw*${normX}-${targetW}/2))`;
     cropFilter = `scale=${targetW}:${targetH}:force_original_aspect_ratio=increase,crop=${targetW}:${targetH}:${cropXExpr}:(ih-${targetH})/2`;
   } else {
     // Default center crop

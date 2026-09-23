@@ -217,6 +217,9 @@ async function processAnalysis(payload: Extract<WorkerPayload, { kind: "analyze"
     await updateJob(payload.jobId, "succeeded", "results_ready", 100);
     await addStep(payload.jobId, "results_ready", "succeeded", { clipCount: clipIds.length });
   } catch (error) {
+    if (error instanceof Error && "stderr" in error) {
+      console.error("FFMPEG STDERR:", (error as any).stderr);
+    }
     const message = error instanceof Error ? error.message : "Unknown media processing error";
     const canceled = message === "Processing canceled by user";
 

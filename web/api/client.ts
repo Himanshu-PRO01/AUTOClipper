@@ -138,11 +138,21 @@ export async function uploadProject(
     });
 
     xhr.addEventListener("load", () => {
-      if (xhr.status === 202) {
-        resolve(JSON.parse(xhr.responseText) as UploadResponse);
-      } else {
-        const err = JSON.parse(xhr.responseText) as { error?: string };
-        reject(new ApiError(xhr.status, err.error ?? "Upload failed"));
+      try {
+        if (xhr.status === 202) {
+          resolve(JSON.parse(xhr.responseText) as UploadResponse);
+        } else {
+          let errMessage = "Upload failed";
+          try {
+            const err = JSON.parse(xhr.responseText) as { error?: string };
+            if (err.error) errMessage = err.error;
+          } catch {
+            errMessage = `Server error ${xhr.status}: ${xhr.statusText}`;
+          }
+          reject(new ApiError(xhr.status, errMessage));
+        }
+      } catch (err) {
+        reject(new ApiError(xhr.status, "Invalid server response"));
       }
     });
 

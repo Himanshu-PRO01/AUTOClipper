@@ -20,6 +20,7 @@ interface Props {
   project: Project;
   uploadPercent?: number;
   onCancel?: () => void;
+  onReset?: () => void;
 }
 
 function statusBadgeClass(status: string) {
@@ -44,7 +45,7 @@ function statusLabel(status: string) {
   return map[status] ?? status;
 }
 
-export function ProcessingStatus({ project, uploadPercent, onCancel }: Props) {
+export function ProcessingStatus({ project, uploadPercent, onCancel, onReset }: Props) {
   const isUploading = project.status === "uploading" || project.status === "draft";
   const isProcessing = ["queued", "processing"].includes(project.status);
   const isReady = project.status === "ready";
@@ -160,6 +161,13 @@ export function ProcessingStatus({ project, uploadPercent, onCancel }: Props) {
         <div className="proc-actions">
           <button className="btn btn-ghost btn-sm" onClick={onCancel} type="button">
             Cancel processing
+          </button>
+        </div>
+      )}
+      {(isFailed || isCanceled) && onReset && (
+        <div className="proc-actions" style={{ marginTop: '1rem' }}>
+          <button className="btn btn-secondary" onClick={onReset} type="button">
+            Try another video
           </button>
         </div>
       )}

@@ -22,10 +22,13 @@ export function UploadDropzone({ onUpload, disabled }: Props) {
     generateTitles: true,
   });
 
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
   const handleFile = useCallback(
     (file: File) => {
+      setErrorMsg(null);
       if (!ACCEPTED.includes(file.type) && !file.name.match(/\.(mp4|mov|avi|webm|mkv|mpg|mpeg|3gp)$/i)) {
-        alert("Please upload a video file (MP4, MOV, AVI, WebM, MKV)");
+        setErrorMsg("Please upload a supported video file (MP4, MOV, AVI, WebM, MKV)");
         return;
       }
       onUpload(file, settings);
@@ -58,6 +61,12 @@ export function UploadDropzone({ onUpload, disabled }: Props) {
           Drop a video. Get viral clips in minutes.
         </p>
       </div>
+
+      {errorMsg && (
+        <div className="upload-error-card card animate-in" style={{ marginBottom: 'var(--space-4)', padding: 'var(--space-3)' }}>
+          <p className="upload-error-msg" style={{ margin: 0, color: 'var(--color-error)' }}>{errorMsg}</p>
+        </div>
+      )}
 
       {/* Upload Zone */}
       <div

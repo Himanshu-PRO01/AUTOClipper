@@ -21,6 +21,7 @@ export function ProjectPage() {
     project?.status === "ready"
   );
   const [showHistory, setShowHistory] = useState(false);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   const view: View =
     project?.status === "ready" ? "clips" :
@@ -30,6 +31,7 @@ export function ProjectPage() {
   const handleUpload = useCallback(
     async (file: File, settings: Partial<ProcessingSettings>) => {
       try {
+        setSuccessMsg(null);
         const response = await upload(file, settings);
         setProjectId(response.projectId);
       } catch {
@@ -41,12 +43,18 @@ export function ProjectPage() {
 
   const handleCancel = async () => {
     if (!projectId) return;
-    await cancelProject(projectId).catch(() => {});
-    await refetchProject();
+    try {
+      await cancelProject(projectId);
+      await refetchProject();
+    } catch (err) {
+      console.error("Failed to cancel project:", err);
+      // We could set a global error state here if needed
+    }
   };
 
   const handleReset = () => {
     setProjectId(null);
+    setSuccessMsg(null);
     resetUpload();
   };
 
@@ -58,6 +66,12 @@ export function ProjectPage() {
       projectTitle={project?.title}
     >
       <div className="project-page">
+        {successMsg && (
+          <div className="success-banner" style={{ background: 'rgba(34, 197, 94, 0.1)', color: '#22c55e', padding: 'var(--space-3)', borderRadius: 'var(--radius-md)', marginBottom: 'var(--space-4)', textAlign: 'center' }}>
+            {successMsg}
+          </div>
+        )}
+        
         {view === "upload" && (
           <>
             <UploadDropzone
@@ -88,6 +102,7 @@ export function ProjectPage() {
               project={project}
               uploadPercent={uploadPercent}
               onCancel={handleCancel}
+              onReset={handleReset}
             />
           </div>
         )}
@@ -129,6 +144,7 @@ export function ProjectPage() {
               <div>
                 <h1 className="clips-page-title">
                   {clips.length} clip{clips.length !== 1 ? "s" : ""} generated
+                  <span style={{ fontSize: '0.5em', marginLeft: 'var(--space-2)', color: '#22c55e', background: 'rgba(34, 197, 94, 0.1)', padding: '2px 8px', borderRadius: '12px', verticalAlign: 'middle' }}>Success!</span>
                 </h1>
                 <p className="clips-page-sub">
                   From <strong>{project.originalFilename}</strong>
