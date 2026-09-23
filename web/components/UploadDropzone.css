@@ -1,0 +1,198 @@
+/* ---- Dropzone Page ---- */
+.dropzone-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-6);
+  padding: var(--space-12) var(--space-6) var(--space-16);
+  max-width: 680px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* ---- Hero ---- */
+.dropzone-hero {
+  text-align: center;
+}
+
+.dropzone-wordmark {
+  font-size: var(--text-4xl);
+  font-weight: var(--weight-black);
+  letter-spacing: -0.04em;
+  line-height: 1;
+  margin-bottom: var(--space-3);
+}
+
+.wordmark-auto {
+  font-style: italic;
+}
+.wordmark-clip {
+  color: var(--color-text-primary);
+}
+
+.dropzone-tagline {
+  font-size: var(--text-lg);
+  color: var(--color-text-secondary);
+  font-weight: var(--weight-normal);
+}
+
+/* ---- Upload Zone ---- */
+.dropzone-zone {
+  width: 100%;
+  padding: var(--space-12) var(--space-8);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  cursor: pointer;
+  transition:
+    border-color var(--transition-base),
+    background var(--transition-base),
+    box-shadow var(--transition-base),
+    transform var(--transition-base);
+  border: 2px dashed var(--color-border-hover);
+  background: var(--color-bg-elevated);
+  position: relative;
+  overflow: hidden;
+}
+
+.dropzone-zone::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 0%, var(--color-accent-soft) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity var(--transition-base);
+}
+
+.dropzone-zone:hover::before,
+.dropzone-dragging::before {
+  opacity: 1;
+}
+
+.dropzone-zone:hover {
+  border-color: var(--color-accent-start);
+  box-shadow: var(--shadow-glow-sm);
+}
+
+.dropzone-dragging {
+  border-color: var(--color-accent-start) !important;
+  background: var(--color-bg-overlay) !important;
+  box-shadow: var(--shadow-glow) !important;
+  transform: scale(1.01);
+}
+
+.dropzone-icon-wrap {
+  animation: upload-drift 3s ease-in-out infinite;
+}
+
+.dropzone-icon {
+  width: 56px;
+  height: 56px;
+}
+
+.dropzone-cta { text-align: center; }
+
+.dropzone-title {
+  font-size: var(--text-xl);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-2);
+}
+
+.dropzone-sub {
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-2);
+}
+
+.dropzone-link {
+  color: var(--color-accent-start);
+  font-weight: var(--weight-semibold);
+}
+
+.dropzone-meta {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  letter-spacing: 0.02em;
+}
+
+/* ---- Settings Panel ---- */
+.dropzone-settings {
+  width: 100%;
+  padding: var(--space-5) var(--space-6);
+}
+
+.settings-heading {
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  margin-bottom: var(--space-5);
+  color: var(--color-text-primary);
+}
+
+.settings-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.settings-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.settings-inline {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.settings-value {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--color-accent-start);
+  min-width: 24px;
+  text-align: right;
+  font-family: var(--font-mono);
+}
+
+.settings-toggle-field {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* ---- Toggle ---- */
+.toggle {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  background: var(--color-bg-overlay);
+  border: 1px solid var(--color-border-hover);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.toggle-on {
+  background: var(--color-accent-start);
+  border-color: var(--color-accent-start);
+}
+
+.toggle-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  background: rgba(255,255,255,0.6);
+  border-radius: 50%;
+  transition: transform var(--transition-spring), background var(--transition-fast);
+}
+
+.toggle-on .toggle-thumb {
+  transform: translateX(20px);
+  background: #fff;
+}

@@ -1,0 +1,106 @@
+.project-page {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-8) var(--space-6);
+  max-width: var(--content-max);
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* ---- Processing page ---- */
+.proc-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  padding-top: var(--space-8);
+}
+
+/* ---- Upload progress/error cards ---- */
+.upload-progress-card,
+.upload-error-card {
+  width: 100%;
+  max-width: 480px;
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.upload-progress-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.upload-progress-pct {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--color-accent-start);
+  text-align: right;
+}
+
+.upload-error-card {
+  flex-direction: row;
+  align-items: flex-start;
+}
+.upload-error-title {
+  font-weight: var(--weight-semibold);
+  color: var(--color-error);
+  margin-bottom: var(--space-1);
+  font-size: var(--text-base);
+}
+.upload-error-msg {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+/* ---- Clips page ---- */
+.clips-page {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.clips-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.clips-page-title {
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
+  margin-bottom: var(--space-1);
+}
+
+.clips-page-sub {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.clips-header-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+/* ---- History section ---- */
+.history-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  width: 100%;
+  max-width: 680px;
+}

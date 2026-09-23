@@ -1,0 +1,68 @@
+.plist-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: 100%;
+}
+
+.plist-skeleton {
+  height: 60px;
+  border-radius: var(--radius-md);
+}
+
+.plist-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  background: var(--color-bg-elevated);
+  border: none;
+  font-family: var(--font-sans);
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.plist-item:hover {
+  background: var(--color-bg-hover);
+}
+
+.plist-left { flex-shrink: 0; }
+
+.plist-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dot-success    { background: var(--color-success); }
+.dot-error      { background: var(--color-error); }
+.dot-processing { background: var(--color-accent-start); animation: pulse-ring 1.5s infinite; }
+.dot-muted      { background: var(--color-text-muted); }
+
+.plist-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  overflow: hidden;
+}
+
+.plist-title {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.plist-meta {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

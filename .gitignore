@@ -1,0 +1,8 @@
+node_modules/
+dist/
+dist-api/
+.env
+.env.local
+data/
+coverage/
+__pycache__/

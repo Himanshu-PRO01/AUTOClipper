@@ -1,0 +1,168 @@
+/* =====================================================================
+   AutoClip Design System — CSS Custom Properties & Keyframes
+   ===================================================================== */
+
+:root {
+  /* ---------- Color Palette ---------- */
+  --color-bg-base:        #0d0f14;
+  --color-bg-elevated:    #13161e;
+  --color-bg-overlay:     #1a1e2a;
+  --color-bg-hover:       #21273a;
+  --color-bg-active:      #272d40;
+
+  --color-border:         rgba(255, 255, 255, 0.07);
+  --color-border-focus:   rgba(112, 90, 255, 0.6);
+  --color-border-hover:   rgba(255, 255, 255, 0.14);
+
+  /* Violet-to-pink gradient system */
+  --color-accent-start:   #705aff;
+  --color-accent-mid:     #a855f7;
+  --color-accent-end:     #ec4899;
+  --color-accent-soft:    rgba(112, 90, 255, 0.15);
+  --color-accent-glow:    rgba(112, 90, 255, 0.35);
+
+  /* Semantic colors */
+  --color-success:        #10b981;
+  --color-success-soft:   rgba(16, 185, 129, 0.12);
+  --color-warning:        #f59e0b;
+  --color-warning-soft:   rgba(245, 158, 11, 0.12);
+  --color-error:          #ef4444;
+  --color-error-soft:     rgba(239, 68, 68, 0.12);
+  --color-info:           #3b82f6;
+  --color-info-soft:      rgba(59, 130, 246, 0.12);
+
+  /* Text */
+  --color-text-primary:   rgba(255, 255, 255, 0.95);
+  --color-text-secondary: rgba(255, 255, 255, 0.6);
+  --color-text-muted:     rgba(255, 255, 255, 0.35);
+  --color-text-disabled:  rgba(255, 255, 255, 0.2);
+
+  /* ---------- Typography ---------- */
+  --font-sans:   "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono:   "JetBrains Mono", "Fira Code", monospace;
+
+  --text-xs:   0.6875rem;   /* 11px */
+  --text-sm:   0.8125rem;   /* 13px */
+  --text-base: 0.9375rem;   /* 15px */
+  --text-lg:   1.0625rem;   /* 17px */
+  --text-xl:   1.25rem;     /* 20px */
+  --text-2xl:  1.5625rem;   /* 25px */
+  --text-3xl:  2rem;        /* 32px */
+  --text-4xl:  2.625rem;    /* 42px */
+
+  --weight-normal:   400;
+  --weight-medium:   500;
+  --weight-semibold: 600;
+  --weight-bold:     700;
+  --weight-black:    900;
+
+  --leading-tight:  1.2;
+  --leading-snug:   1.35;
+  --leading-normal: 1.5;
+  --leading-loose:  1.7;
+
+  /* ---------- Spacing ---------- */
+  --space-1:   0.25rem;
+  --space-2:   0.5rem;
+  --space-3:   0.75rem;
+  --space-4:   1rem;
+  --space-5:   1.25rem;
+  --space-6:   1.5rem;
+  --space-8:   2rem;
+  --space-10:  2.5rem;
+  --space-12:  3rem;
+  --space-16:  4rem;
+  --space-20:  5rem;
+  --space-24:  6rem;
+
+  /* ---------- Radii ---------- */
+  --radius-sm:   6px;
+  --radius-md:   10px;
+  --radius-lg:   16px;
+  --radius-xl:   22px;
+  --radius-full: 9999px;
+
+  /* ---------- Shadows ---------- */
+  --shadow-sm:  0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md:  0 4px 16px rgba(0, 0, 0, 0.45), 0 2px 6px rgba(0, 0, 0, 0.3);
+  --shadow-lg:  0 12px 40px rgba(0, 0, 0, 0.6), 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-glow: 0 0 30px rgba(112, 90, 255, 0.25), 0 0 60px rgba(112, 90, 255, 0.1);
+  --shadow-glow-sm: 0 0 15px rgba(112, 90, 255, 0.2);
+
+  /* ---------- Transitions ---------- */
+  --transition-fast:   150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base:   250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow:   400ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-spring: 350ms cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* ---------- Layout ---------- */
+  --sidebar-width: 260px;
+  --header-height: 60px;
+  --content-max:   1320px;
+}
+
+/* =====================================================================
+   Keyframe Animations
+   ===================================================================== */
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.94); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes pulse-ring {
+  0%   { box-shadow: 0 0 0 0 var(--color-accent-glow); }
+  70%  { box-shadow: 0 0 0 10px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+@keyframes gradient-shift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -600px 0; }
+  100% { background-position: 600px 0; }
+}
+
+@keyframes progress-fill {
+  from { width: 0%; }
+  to   { width: var(--progress-width, 100%); }
+}
+
+@keyframes bounce-dots {
+  0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+  40%           { transform: scale(1.1); opacity: 1; }
+}
+
+@keyframes upload-drift {
+  0%   { transform: translateY(0px); }
+  50%  { transform: translateY(-6px); }
+  100% { transform: translateY(0px); }
+}

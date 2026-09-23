@@ -1,0 +1,22 @@
+{
+  "mcpServers": {
+    "hyper-canvas": {
+      "type": "http",
+      "url": "http://127.0.0.1:57508/mcp?token=87f9a334ebdf1d1e9e0f1e14d8ba6f72761da69efe6ccfdf"
+    },
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@playwright/mcp@latest"
+      ]
+    },
+    "serena": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@anthropic/serena-mcp@latest"
+      ]
+    }
+  }
+}

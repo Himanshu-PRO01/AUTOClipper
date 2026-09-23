@@ -1,0 +1,169 @@
+.proc-card {
+  width: 100%;
+  max-width: 680px;
+  margin: 0 auto;
+  padding: var(--space-5) var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.proc-header { display: flex; flex-direction: column; gap: var(--space-2); }
+
+.proc-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.proc-title {
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+  color: var(--color-text-primary);
+}
+
+.proc-filename {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+}
+
+.status-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: pulse-ring 1.5s ease-out infinite;
+}
+
+/* ---- Progress ---- */
+.proc-progress-wrap { display: flex; flex-direction: column; gap: var(--space-2); }
+
+.proc-progress-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.proc-stage { font-size: var(--text-sm); color: var(--color-text-secondary); }
+.proc-percent {
+  font-size: var(--text-xs);
+  font-family: var(--font-mono);
+  color: var(--color-accent-start);
+}
+
+/* ---- Pipeline ---- */
+.proc-pipeline {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: var(--space-2) 0;
+}
+
+.proc-step {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  position: relative;
+}
+
+.proc-step-dot {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid var(--color-border-hover);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg-overlay);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+  transition: all var(--transition-base);
+}
+
+.proc-step.done .proc-step-dot {
+  background: var(--color-success);
+  border-color: var(--color-success);
+}
+
+.proc-step.active .proc-step-dot {
+  border-color: var(--color-accent-start);
+  box-shadow: 0 0 0 4px var(--color-accent-soft);
+}
+
+.step-spinner {
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--color-border-hover);
+  border-top-color: var(--color-accent-start);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: block;
+}
+
+.step-num {
+  font-size: 10px;
+  font-weight: var(--weight-bold);
+  color: var(--color-text-muted);
+}
+
+.proc-step-label {
+  position: absolute;
+  top: 36px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  font-weight: var(--weight-medium);
+}
+
+.proc-step.done .proc-step-label { color: var(--color-success); }
+.proc-step.active .proc-step-label { color: var(--color-accent-start); }
+
+.proc-step-line {
+  flex: 1;
+  height: 2px;
+  background: var(--color-border);
+  margin: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.proc-step.done + .proc-step .proc-step-line,
+.proc-step.done .proc-step-line {
+  background: var(--color-success);
+}
+
+/* ---- Meta ---- */
+.proc-meta {
+  display: flex;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  margin-top: var(--space-4); /* extra space for step labels */
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+/* ---- Error ---- */
+.proc-error {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--color-error-soft);
+  border: 1px solid rgba(239,68,68,0.2);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  color: var(--color-error);
+}
+
+/* ---- Actions ---- */
+.proc-actions {
+  display: flex;
+  justify-content: flex-end;
+}

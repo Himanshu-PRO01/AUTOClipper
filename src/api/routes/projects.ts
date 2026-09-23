@@ -1,0 +1,191 @@
+import type { FastifyPluginAsync } from "fastify";
+import { randomUUID } from "node:crypto";
+import { z } from "zod";
+import { config } from "../../config.js";
+import {
+  createProject,
+  listProjects,
+  getProject,
+  createJob,
+  setProjectStatus,
+  createAsset,
+} from "../../db/repository.js";
+import { mediaQueue } from "../../queue.js";
+import { writeStream, sourceKey, pathFor } from "../../storage/local.js";
+import { extname } from "node:path";
+import { probe } from "../../media/ffmpeg.js";
+import type { ProcessingSettings } from "../../shared/types.js";
+
+const ALLOWED_MIME = new Set([
+  "video/mp4",
+  "video/quicktime",
+  "video/x-msvideo",
+  "video/webm",
+  "video/x-matroska",
+  "video/mpeg",
+  "video/3gpp",
+]);
+
+const EXT_TO_MIME: Record<string, string> = {
+  ".mp4": "video/mp4",
+  ".m4v": "video/mp4",
+  ".mov": "video/quicktime",
+  ".webm": "video/webm",
+  ".mkv": "video/x-matroska",
+  ".avi": "video/x-msvideo",
+  ".mpeg": "video/mpeg",
+  ".mpg": "video/mpeg",
+};
+
+const settingsSchema = z.object({
+  clipCount: z.coerce.number().int().min(1).max(20).default(5),
+  minDurationSeconds: z.coerce.number().min(10).max(120).default(30),
+  maxDurationSeconds: z.coerce.number().min(30).max(300).default(90),
+  aspectRatio: z.enum(["9:16", "1:1", "4:5", "16:9"]).default("9:16"),
+  captionStyle: z.enum(["bold", "minimal", "karaoke", "none"]).default("bold"),
+  quality: z.enum(["draft", "standard", "high"]).default("standard"),
+  generateTitles: z
+    .string()
+    .transform((v) => v === "true")
+    .or(z.boolean())
+    .default(true),
+  language: z.string().optional(),
+});
+
+export const projectRoutes: FastifyPluginAsync = async (app) => {
+  // List all projects (dashboard)
+  app.get("/projects", async (_req, reply) => {
+    const projects = await listProjects();
+    return reply.send(projects);
+  });
+
+  // Upload a video and create a project
+  app.post("/projects", async (req, reply) => {
+    const data = await req.file();
+    if (!data) return reply.status(400).send({ error: "No file uploaded" });
+
+    let mimeType = data.mimetype;
+    if (!ALLOWED_MIME.has(mimeType)) {
+      const ext = extname(data.filename).toLowerCase();
+      if (EXT_TO_MIME[ext]) {
+        mimeType = EXT_TO_MIME[ext];
+      } else {
+        data.file.resume(); // Non-buffering stream drain to prevent DoS
+        return reply.status(415).send({ error: "Unsupported video format" });
+      }
+    }
+
+    // Parse settings from form fields
+    const rawSettings: Record<string, string> = {};
+    for (const [key, value] of Object.entries(data.fields)) {
+      if (value && !Array.isArray(value) && "value" in value) {
+        rawSettings[key] = value.value as string;
+      }
+    }
+    const settingsParsed = settingsSchema.safeParse(rawSettings);
+    if (!settingsParsed.success) {
+      data.file.resume(); // Non-buffering stream drain
+      return reply.status(400).send({ error: "Invalid settings", details: settingsParsed.error.flatten() });
+    }
+
+    const settings: ProcessingSettings = {
+      ...settingsParsed.data,
+      generateTitles: Boolean(settingsParsed.data.generateTitles),
+    };
+
+    // Validate min/max
+    if (settings.minDurationSeconds >= settings.maxDurationSeconds) {
+      data.file.resume();
+      return reply.status(400).send({ error: "minDurationSeconds must be less than maxDurationSeconds" });
+    }
+
+    const filename = data.filename || "upload.mp4";
+    const title = filename.replace(/\.[^.]+$/, "").replace(/[-_]/g, " ").trim() || "Untitled";
+
+    // Create project record
+    const project = await createProject({ title, filename, mimeType, settings });
+
+    // Stream file to storage
+    const sKey = sourceKey(project.id);
+    let bytes = 0;
+    try {
+      await setProjectStatus(project.id, "uploading");
+      const result = await writeStream(sKey, data.file);
+      bytes = result.bytes;
+
+      if (bytes === 0) throw new Error("Uploaded file is empty");
+
+      // Validate video format via ffprobe
+      const sourcePath = pathFor(sKey);
+      const metadata = await probe(sourcePath);
+
+      if (metadata.durationMs > config.MAX_DURATION_SECONDS * 1000) {
+        throw new Error(
+          `Video duration (${Math.round(metadata.durationMs / 1000)}s) exceeds max limit of ${config.MAX_DURATION_SECONDS}s`
+        );
+      }
+
+      await createAsset(project.id, "source", sKey, mimeType, bytes, {
+        originalFilename: filename,
+        codec: metadata.codec,
+      });
+
+      await setProjectStatus(project.id, "uploaded", {
+        bytes,
+        durationMs: metadata.durationMs,
+        width: metadata.width,
+        height: metadata.height,
+      });
+
+      // Enqueue analysis job
+      const jobId = await createJob(project.id, "analyze");
+      await mediaQueue.add("analyze", { kind: "analyze", jobId, projectId: project.id }, { jobId });
+      await setProjectStatus(project.id, "queued");
+
+      return reply.status(202).send({ projectId: project.id, jobId });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Upload failed";
+      // Clean up orphaned failed file
+      const { remove } = await import("../../storage/local.js");
+      await remove(sKey).catch(() => {});
+
+      await setProjectStatus(project.id, "failed", {
+        errorCode: "UPLOAD_FAILED",
+        errorMessage: msg,
+      }).catch(() => {});
+      return reply.status(422).send({ error: msg });
+    }
+  });
+
+  // Get a single project (for polling)
+  app.get<{ Params: { id: string } }>("/projects/:id", async (req, reply) => {
+    const project = await getProject(req.params.id);
+    if (!project) return reply.status(404).send({ error: "Project not found" });
+    return reply.send(project);
+  });
+
+  // Cancel processing
+  app.post<{ Params: { id: string } }>("/projects/:id/cancel", async (req, reply) => {
+    const project = await getProject(req.params.id);
+    if (!project) return reply.status(404).send({ error: "Project not found" });
+    if (!["queued", "processing"].includes(project.status)) {
+      return reply.status(409).send({ error: "Project is not in a cancellable state" });
+    }
+
+    await setProjectStatus(project.id, "cancel_requested");
+
+    // If job is still queued in BullMQ, cancel/remove it immediately
+    try {
+      const waitingJobs = await mediaQueue.getJobs(["waiting", "delayed"]);
+      for (const j of waitingJobs) {
+        if (j.data?.projectId === project.id) {
+          await j.remove();
+          await setProjectStatus(project.id, "canceled");
+          break;
+        }
+      }
+    } catch {}
+
+    return reply.send({ ok: true });
+  });
+};
