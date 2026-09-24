@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from "react";
 import type { ProcessingSettings } from "../api/client.js";
 import "./UploadDropzone.css";
+import { TextRepel } from "./TextRepel.js";
 
 interface Props {
   onUpload: (file: File, settings: Partial<ProcessingSettings>) => void;
@@ -57,9 +58,9 @@ export function UploadDropzone({ onUpload, disabled }: Props) {
           <span className="wordmark-auto gradient-text">Auto</span>
           <span className="wordmark-clip">Clip</span>
         </div>
-        <p className="dropzone-tagline">
-          Drop a video. Get viral clips in minutes.
-        </p>
+        <div className="dropzone-tagline">
+          <TextRepel text="Drop a video. Get viral clips in minutes." />
+        </div>
       </div>
 
       {errorMsg && (

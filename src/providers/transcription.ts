@@ -16,13 +16,20 @@ export class FasterWhisperProvider implements TranscriptionProvider {
     if (language) args.push("--language", language);
 
     const output = await new Promise<string>((resolvePromise, reject) => {
-      const child = spawn(config.PYTHON_PATH, args, { windowsHide: true, shell: false });
+      const ac = new AbortController();
+      const timeout = setTimeout(() => ac.abort(new Error("Transcription timed out after 5 minutes")), 300_000);
+      
+      const child = spawn(config.PYTHON_PATH, args, { windowsHide: true, shell: false, signal: ac.signal });
       let stdout = "";
       let stderr = "";
       child.stdout.on("data", (data: Buffer) => { stdout += data.toString(); });
       child.stderr.on("data", (data: Buffer) => { stderr += data.toString(); });
-      child.on("error", reject);
+      child.on("error", (err) => {
+        clearTimeout(timeout);
+        reject(err);
+      });
       child.on("close", (code) => {
+        clearTimeout(timeout);
         if (code === 0) {
           resolvePromise(stdout);
         } else {

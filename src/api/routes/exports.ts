@@ -1,8 +1,6 @@
 import type { FastifyPluginAsync } from "fastify";
 import { getExport, getAsset } from "../../db/repository.js";
-import { pathFor } from "../../storage/local.js";
-import { createReadStream } from "node:fs";
-import { stat } from "node:fs/promises";
+import { storage } from "../../storage/index.js";
 
 export const exportRoutes: FastifyPluginAsync = async (app) => {
   // Poll export status
@@ -37,12 +35,11 @@ export const exportRoutes: FastifyPluginAsync = async (app) => {
       const asset = await getAsset(exp.asset_id);
       if (!asset) return reply.status(404).send({ error: "Export asset missing" });
 
-      const filePath = pathFor(asset.storage_key);
       let fileSize: number;
       try {
-        fileSize = (await stat(filePath)).size;
+        fileSize = await storage.getSize(asset.storage_key);
       } catch {
-        return reply.status(404).send({ error: "Export file not found on disk" });
+        return reply.status(404).send({ error: "Export file not found in storage" });
       }
 
       reply.header("Content-Disposition", `attachment; filename="clip-${exp.clip_id}.mp4"`);
@@ -50,7 +47,7 @@ export const exportRoutes: FastifyPluginAsync = async (app) => {
       reply.header("Content-Length", fileSize);
       reply.header("Cache-Control", "private, max-age=86400");
 
-      return reply.send(createReadStream(filePath));
+      return reply.send(storage.readStream(asset.storage_key));
     }
   );
 };

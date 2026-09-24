@@ -4,9 +4,14 @@ import fastifyMultipart from "@fastify/multipart";
 import fastifyStatic from "@fastify/static";
 import { resolve } from "node:path";
 import { mkdir } from "node:fs/promises";
+import { createBullBoard } from "@bull-board/api";
+import { BullMQAdapter } from "@bull-board/api/bullMQAdapter";
+import { FastifyAdapter } from "@bull-board/fastify";
 import { config } from "../config.js";
 import { pool } from "../db/pool.js";
-import { ensureStorage } from "../storage/local.js";
+import { logger } from "../logger.js";
+import { mediaQueue } from "../queue.js";
+import { storage } from "../storage/index.js";
 import { projectRoutes } from "./routes/projects.js";
 import { clipRoutes } from "./routes/clips.js";
 import { assetRoutes } from "./routes/assets.js";
@@ -14,12 +19,7 @@ import { exportRoutes } from "./routes/exports.js";
 
 export async function buildServer() {
   const app = Fastify({
-    logger: {
-      transport:
-        config.NODE_ENV === "development"
-          ? { target: "pino-pretty", options: { colorize: true } }
-          : undefined,
-    },
+    loggerInstance: logger,
     bodyLimit: config.MAX_UPLOAD_BYTES,
     trustProxy: config.NODE_ENV === "production",
   });
@@ -58,11 +58,19 @@ export async function buildServer() {
     version: "1.0.0",
   }));
 
+  const serverAdapter = new FastifyAdapter();
+  createBullBoard({
+    queues: [new BullMQAdapter(mediaQueue)],
+    serverAdapter,
+  });
+  serverAdapter.setBasePath("/api/admin/queues");
+  await app.register(serverAdapter.registerPlugin(), { prefix: "/api/admin/queues" });
+
   return app;
 }
 
 async function main() {
-  await ensureStorage();
+  await storage.ensureStorage();
   await mkdir(resolve(config.WORK_ROOT), { recursive: true });
 
   // Verify DB connection
@@ -77,7 +85,14 @@ async function main() {
   }
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+import url from "node:url";
+
+if (
+  process.argv[1] &&
+  import.meta.url === url.pathToFileURL(process.argv[1]).href
+) {
+  main().catch((err) => {
+    logger.error(err);
+    process.exit(1);
+  });
+}

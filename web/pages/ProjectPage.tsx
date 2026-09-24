@@ -62,7 +62,6 @@ export function ProjectPage() {
 
   return (
     <Layout
-      onHome={view !== "upload" ? handleReset : undefined}
       projectTitle={project?.title}
     >
       <div className="project-page">

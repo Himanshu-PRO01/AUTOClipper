@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { Clip, ClipPatch } from "../api/client.js";
-import { patchClip, exportClip } from "../api/client.js";
+import { patchClip, exportClip, getExport } from "../api/client.js";
 import { VideoPlayer } from "./VideoPlayer.js";
 import "./ClipEditor.css";
 
@@ -75,7 +75,6 @@ export function ClipEditor({ clip, onUpdated, onClose }: Props) {
       let attempts = 0;
       const poll = async () => {
         if (attempts++ > 60) return;
-        const { getExport } = await import("../api/client.js");
         const exp = await getExport(eid);
         if (exp.status === "succeeded" && exp.downloadUrl) {
           setExportDone(true);

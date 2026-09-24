@@ -1,0 +1,14 @@
+.text-repel-container {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    cursor: default;
+    user-select: none;
+}
+
+.text-repel-letter {
+    display: inline-block;
+    white-space: pre;
+    will-change: transform;
+}

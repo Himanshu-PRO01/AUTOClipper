@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { useState } from "react";
 import "./Layout.css";
+import { AuroraFlow } from "./AuroraFlow";
 
 interface Props {
   children: ReactNode;
@@ -11,7 +12,7 @@ export function Layout({ children, projectTitle }: Props) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   return (
-    <div className="layout">
+    <div className="layout relative z-0">
       <header className="layout-header glass">
         <div className="layout-header-inner">
           <a className="layout-wordmark" href="/">

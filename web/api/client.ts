@@ -11,6 +11,7 @@ async function request<T>(
     method,
     headers: body ? { "Content-Type": "application/json" } : {},
     body: body ? JSON.stringify(body) : undefined,
+    signal: AbortSignal.timeout(30_000),
   };
   const res = await fetch(`${BASE}${path}`, init);
   if (!res.ok) {

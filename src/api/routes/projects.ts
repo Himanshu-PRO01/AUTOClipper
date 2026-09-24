@@ -11,8 +11,8 @@ import {
   createAsset,
 } from "../../db/repository.js";
 import { mediaQueue } from "../../queue.js";
-import { writeStream, sourceKey, pathFor } from "../../storage/local.js";
-import { extname } from "node:path";
+import { storage, sourceKey } from "../../storage/index.js";
+import { extname, resolve } from "node:path";
 import { probe } from "../../media/ffmpeg.js";
 import type { ProcessingSettings } from "../../shared/types.js";
 
@@ -105,25 +105,43 @@ export const projectRoutes: FastifyPluginAsync = async (app) => {
     // Create project record
     const project = await createProject({ title, filename, mimeType, settings });
 
-    // Stream file to storage
-    const sKey = sourceKey(project.id);
+    // Stream file to local temp storage for probing
+    const tempPath = resolve(config.WORK_ROOT, `upload-${project.id}${extname(filename)}`);
+    const { pipeline } = await import("node:stream/promises");
+    const { createWriteStream } = await import("node:fs");
+    const { rm } = await import("node:fs/promises");
+    
     let bytes = 0;
+    const { Transform } = await import("node:stream");
+    const meter = new Transform({
+      transform(chunk: Buffer, _encoding, callback) {
+        bytes += chunk.length;
+        if (bytes > config.MAX_UPLOAD_BYTES) {
+          callback(new Error(`File size exceeds maximum upload limit of ${config.MAX_UPLOAD_BYTES} bytes`));
+          return;
+        }
+        callback(null, chunk);
+      },
+    });
+
     try {
       await setProjectStatus(project.id, "uploading");
-      const result = await writeStream(sKey, data.file);
-      bytes = result.bytes;
+      await pipeline(data.file, meter, createWriteStream(tempPath, { flags: "w" }));
 
       if (bytes === 0) throw new Error("Uploaded file is empty");
 
       // Validate video format via ffprobe
-      const sourcePath = pathFor(sKey);
-      const metadata = await probe(sourcePath);
+      const metadata = await probe(tempPath);
 
       if (metadata.durationMs > config.MAX_DURATION_SECONDS * 1000) {
         throw new Error(
           `Video duration (${Math.round(metadata.durationMs / 1000)}s) exceeds max limit of ${config.MAX_DURATION_SECONDS}s`
         );
       }
+
+      const sKey = sourceKey(project.id);
+      await storage.copyFromPath(sKey, tempPath);
+      await rm(tempPath, { force: true }).catch(() => {});
 
       await createAsset(project.id, "source", sKey, mimeType, bytes, {
         originalFilename: filename,
@@ -146,8 +164,10 @@ export const projectRoutes: FastifyPluginAsync = async (app) => {
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Upload failed";
       // Clean up orphaned failed file
-      const { remove } = await import("../../storage/local.js");
-      await remove(sKey).catch(() => {});
+      const { rm } = await import("node:fs/promises");
+      if (typeof tempPath !== 'undefined') await rm(tempPath, { force: true }).catch(() => {});
+      const sKey = sourceKey(project.id);
+      await storage.remove(sKey).catch(() => {});
 
       await setProjectStatus(project.id, "failed", {
         errorCode: "UPLOAD_FAILED",

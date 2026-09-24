@@ -1,0 +1,1 @@
+import { pool } from './src/db/pool.ts'; async function run() { const res = await pool.query('SELECT * FROM clips WHERE project_id = $1', ['500fed8d-4f69-4390-90d7-1d7fbafcee08']); console.log(res.rows); process.exit(0); } run();

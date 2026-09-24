@@ -24,7 +24,13 @@ const schema = z.object({
   GEMINI_MODEL: z.string().default("gemini-2.5-flash"),
   JOB_ATTEMPTS: z.coerce.number().int().min(1).max(10).default(3),
   SOURCE_RETENTION_DAYS: z.coerce.number().int().min(1).max(365).default(14),
-  EXPORT_RETENTION_DAYS: z.coerce.number().int().min(1).max(365).default(30)
+  EXPORT_RETENTION_DAYS: z.coerce.number().int().min(1).max(365).default(30),
+  STORAGE_BACKEND: z.enum(["local", "s3"]).default("local"),
+  S3_BUCKET: z.string().optional(),
+  S3_REGION: z.string().optional(),
+  S3_ACCESS_KEY: z.string().optional(),
+  S3_SECRET_KEY: z.string().optional(),
+  S3_ENDPOINT: z.string().optional(),
 });
 
 export type AppConfig = z.infer<typeof schema>;

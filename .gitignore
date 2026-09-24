@@ -6,3 +6,11 @@ dist-api/
 data/
 coverage/
 __pycache__/
+*.mp4
+*.zip
+*.srt
+*.rdb
+.playwright-mcp/
+graphify-out/
+scratch/
+redis/

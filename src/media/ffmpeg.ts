@@ -4,6 +4,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomUUID } from "node:crypto";
 import { config } from "../config.js";
+import { logger } from "../logger.js";
 import type { AspectRatio, CaptionStyle, VideoMetadata } from "../shared/types.js";
 
 export class MediaError extends Error {
@@ -25,7 +26,7 @@ export async function run(
 ): Promise<RunResult> {
   return new Promise((resolvePromise, reject) => {
     const child = spawn(binary, args, { windowsHide: true, shell: false });
-    console.log(`[FFMPEG RUN] ${binary} ${args.join(" ")}`);
+    logger.info(`[FFMPEG RUN] ${binary} ${args.join(" ")}`);
     let stderr = "";
     let stdout = "";
     let timedOut = false;

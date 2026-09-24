@@ -29,11 +29,12 @@ import {
   addStep,
   updateClip,
 } from "../db/repository.js";
-import { copyFromPath, derivedKey, pathFor } from "../storage/local.js";
+import { storage, derivedKey } from "../storage/index.js";
 import { FasterWhisperProvider } from "../providers/transcription.js";
 import { GeminiHighlightProvider } from "../providers/gemini.js";
 import type { AspectRatio, CaptionStyle } from "../shared/types.js";
 import type { WorkerPayload } from "../queue.js";
+import { logger } from "../logger.js";
 
 async function stage(jobId: string, name: string, progress: number): Promise<void> {
   await updateJob(jobId, "running", name, progress);
@@ -68,7 +69,9 @@ async function processAnalysis(payload: Extract<WorkerPayload, { kind: "analyze"
     await setProjectStatus(project.id, "processing");
     await stage(payload.jobId, "validating_source", 5);
 
-    const sourcePath = pathFor(source.storage_key);
+    const sourcePath = localFile(workDir, "source.mp4");
+    await storage.downloadToPath(source.storage_key, sourcePath);
+    
     const metadata = await probe(sourcePath);
 
     if (metadata.durationMs > config.MAX_DURATION_SECONDS * 1000) {
@@ -96,8 +99,8 @@ async function processAnalysis(payload: Extract<WorkerPayload, { kind: "analyze"
     const audioKey = derivedKey(project.id, "analysis", "audio.wav");
 
     const [proxyStored, audioStored] = await Promise.all([
-      copyFromPath(proxyKey, proxyPath),
-      copyFromPath(audioKey, audioPath),
+      storage.copyFromPath(proxyKey, proxyPath),
+      storage.copyFromPath(audioKey, audioPath),
     ]);
 
     await Promise.all([
@@ -126,7 +129,7 @@ async function processAnalysis(payload: Extract<WorkerPayload, { kind: "analyze"
         const rankings = await new GeminiHighlightProvider().rank(candidates.slice(0, 80));
         candidates = applyGeminiRankings(candidates, rankings);
       } catch (err) {
-        console.warn("Gemini ranking skipped, continuing with local rankings:", err);
+        logger.warn({ error: err }, "Gemini ranking skipped, continuing with local rankings");
       }
     }
 
@@ -190,8 +193,8 @@ async function processAnalysis(payload: Extract<WorkerPayload, { kind: "analyze"
       const previewKey = derivedKey(project.id, "previews", `${clipId}.mp4`);
 
       const [srtStored, previewStored] = await Promise.all([
-        copyFromPath(srtKey, srtPath),
-        copyFromPath(previewKey, previewPath),
+        storage.copyFromPath(srtKey, srtPath),
+        storage.copyFromPath(previewKey, previewPath),
       ]);
 
       const [srtAsset, previewAsset] = await Promise.all([
@@ -218,7 +221,7 @@ async function processAnalysis(payload: Extract<WorkerPayload, { kind: "analyze"
     await addStep(payload.jobId, "results_ready", "succeeded", { clipCount: clipIds.length });
   } catch (error) {
     if (error instanceof Error && "stderr" in error) {
-      console.error("FFMPEG STDERR:", (error as any).stderr);
+      logger.error({ stderr: (error as any).stderr }, "FFMPEG STDERR");
     }
     const message = error instanceof Error ? error.message : "Unknown media processing error";
     const canceled = message === "Processing canceled by user";
@@ -255,8 +258,11 @@ async function processExport(payload: Extract<WorkerPayload, { kind: "export" }>
     const transcript = await getTranscript(project.id);
     const srtPath = join(workDir, "captions.srt");
     const outputPath = join(workDir, "export.mp4");
+    const sourcePath = join(workDir, "source.mp4");
 
     await mkdir(workDir, { recursive: true });
+    await storage.downloadToPath(source.storage_key, sourcePath);
+    
     await writeFile(
       srtPath,
       toSrt(transcript, clip.start_ms, clip.end_ms, clip.caption_style as CaptionStyle),
@@ -267,14 +273,14 @@ async function processExport(payload: Extract<WorkerPayload, { kind: "export" }>
     let faceResult = { cropX: 0, normalizedX: 0.5, detected: false };
     if (clip.crop_mode === "face" && ["9:16", "1:1", "4:5"].includes(clip.aspect_ratio)) {
       faceResult = await detectFaceCrop(
-        pathFor(source.storage_key),
+        sourcePath,
         clip.start_ms,
         clip.end_ms,
         clip.aspect_ratio as AspectRatio
       );
     }
 
-    await renderClip(pathFor(source.storage_key), outputPath, {
+    await renderClip(sourcePath, outputPath, {
       startMs: clip.start_ms,
       endMs: clip.end_ms,
       ratio: clip.aspect_ratio as AspectRatio,
@@ -286,7 +292,7 @@ async function processExport(payload: Extract<WorkerPayload, { kind: "export" }>
     });
 
     const key = derivedKey(project.id, "exports", `${payload.exportId}.mp4`);
-    const stored = await copyFromPath(key, outputPath);
+    const stored = await storage.copyFromPath(key, outputPath);
     const asset = await createAsset(
       project.id,
       "export",

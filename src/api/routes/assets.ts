@@ -1,8 +1,6 @@
 import type { FastifyPluginAsync } from "fastify";
-import { createReadStream } from "node:fs";
-import { stat } from "node:fs/promises";
 import { getAsset } from "../../db/repository.js";
-import { pathFor } from "../../storage/local.js";
+import { storage } from "../../storage/index.js";
 
 export const assetRoutes: FastifyPluginAsync = async (app) => {
   // Stream a media asset by its DB id
@@ -10,14 +8,11 @@ export const assetRoutes: FastifyPluginAsync = async (app) => {
     const asset = await getAsset(req.params.assetId);
     if (!asset) return reply.status(404).send({ error: "Asset not found or expired" });
 
-    const filePath = pathFor(asset.storage_key);
-
     let fileSize: number;
     try {
-      const stats = await stat(filePath);
-      fileSize = stats.size;
+      fileSize = await storage.getSize(asset.storage_key);
     } catch {
-      return reply.status(404).send({ error: "Asset file not found on disk" });
+      return reply.status(404).send({ error: "Asset file not found in storage" });
     }
 
     const rangeHeader = req.headers.range;
@@ -46,7 +41,7 @@ export const assetRoutes: FastifyPluginAsync = async (app) => {
       reply.header("Cache-Control", "private, max-age=3600");
       reply.status(206);
 
-      return reply.send(createReadStream(filePath, { start, end }));
+      return reply.send(storage.readStream(asset.storage_key, { start, end }));
     }
 
     reply.header("Content-Length", fileSize);
@@ -54,6 +49,6 @@ export const assetRoutes: FastifyPluginAsync = async (app) => {
     reply.header("Accept-Ranges", "bytes");
     reply.header("Cache-Control", "private, max-age=3600");
 
-    return reply.send(createReadStream(filePath));
+    return reply.send(storage.readStream(asset.storage_key));
   });
 };

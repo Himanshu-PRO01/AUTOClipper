@@ -1,5 +1,6 @@
 import type { Clip } from "../api/client.js";
 import { ClipCard } from "./ClipCard.js";
+import { ScrollTiltedGrid } from "./ScrollTiltedGrid.js";
 import "./ClipGrid.css";
 
 interface Props {
@@ -47,12 +48,14 @@ export function ClipGrid({ clips, loading, onUpdated }: Props) {
   }
 
   return (
-    <div className="clip-grid">
-      {clips.map((clip, i) => (
-        <div key={clip.id} style={{ animationDelay: `${i * 0.06}s` }}>
+    <ScrollTiltedGrid
+      items={clips}
+      itemKey={(clip) => clip.id}
+      renderItem={(clip, i) => (
+        <div style={{ animationDelay: `${i * 0.06}s`, height: "100%" }}>
           <ClipCard clip={clip} onUpdated={onUpdated} />
         </div>
-      ))}
-    </div>
+      )}
+    />
   );
 }
