@@ -9,22 +9,28 @@ function formatTimestamp(milliseconds: number): string {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")},${String(remainderMs).padStart(3, "0")}`;
 }
 
-interface SubtitleCue {
+export interface CaptionCue {
   startMs: number;
   endMs: number;
   text: string;
 }
 
-export function toSrt(
+/**
+ * Build clip-relative caption cues (chunked, timed text) from transcript segments.
+ * Shared by toSrt() (ffmpeg subtitle burn-in for the final export) and the
+ * /clips/:id/caption-cues API route (instant client-side caption overlay used
+ * while editing, so switching caption styles doesn't require re-rendering video).
+ */
+export function buildCaptionCues(
   segments: TranscriptSegment[],
   clipStartMs: number,
   clipEndMs: number,
   style: CaptionStyle = "bold"
-): string {
-  if (style === "none") return "";
+): CaptionCue[] {
+  if (style === "none") return [];
 
   const durationMs = clipEndMs - clipStartMs;
-  const cues: SubtitleCue[] = [];
+  const cues: CaptionCue[] = [];
 
   // Filter segments that overlap with clip
   const relevant = segments.filter(
@@ -120,6 +126,16 @@ export function toSrt(
   // Deduplicate / ensure strictly increasing timestamps
   cues.sort((a, b) => a.startMs - b.startMs);
 
+  return cues;
+}
+
+export function toSrt(
+  segments: TranscriptSegment[],
+  clipStartMs: number,
+  clipEndMs: number,
+  style: CaptionStyle = "bold"
+): string {
+  const cues = buildCaptionCues(segments, clipStartMs, clipEndMs, style);
   return cues
     .map((cue, index) => {
       return `${index + 1}\n${formatTimestamp(cue.startMs)} --> ${formatTimestamp(cue.endMs)}\n${cue.text}\n`;

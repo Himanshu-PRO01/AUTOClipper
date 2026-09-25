@@ -20,6 +20,7 @@ const schema = z.object({
   PYTHON_PATH: z.string().default("python"),
   TRANSCRIPTION_PROVIDER: z.enum(["faster-whisper"]).default("faster-whisper"),
   FASTER_WHISPER_MODEL: z.string().default("small"),
+  WHISPER_DEVICE: z.enum(["auto", "cpu", "cuda"]).default("auto"),
   GEMINI_API_KEY: z.string().optional(),
   GEMINI_MODEL: z.string().default("gemini-2.5-flash"),
   JOB_ATTEMPTS: z.coerce.number().int().min(1).max(10).default(3),

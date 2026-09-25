@@ -26,4 +26,6 @@ export interface ProjectRecord {
   id: string; title: string; status: ProjectStatus; originalFilename: string; mimeType: string; bytes: number;
   durationMs: number | null; width: number | null; height: number | null; settings: ProcessingSettings;
   errorCode: string | null; errorMessage: string | null; createdAt: string; updatedAt: string;
+  /** Real pipeline stage/progress (0-100) from the latest processing_jobs row, e.g. "transcribing" / 32. */
+  jobStage: string | null; jobProgress: number | null;
 }

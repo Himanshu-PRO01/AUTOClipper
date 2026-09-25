@@ -2,11 +2,24 @@ import { randomUUID } from "node:crypto";
 import type { AssetKind, ClipCandidate, ProcessingSettings, ProjectRecord, ProjectStatus, TranscriptSegment } from "../shared/types.js";
 import { one, query } from "./pool.js";
 
-type ProjectRow = { id: string; title: string; status: ProjectStatus; original_filename: string; mime_type: string; bytes: string; duration_ms: number | null; width: number | null; height: number | null; settings: ProcessingSettings; error_code: string | null; error_message: string | null; created_at: Date; updated_at: Date; };
-function project(row: ProjectRow): ProjectRecord { return { id: row.id, title: row.title, status: row.status, originalFilename: row.original_filename, mimeType: row.mime_type, bytes: Number(row.bytes), durationMs: row.duration_ms, width: row.width, height: row.height, settings: row.settings, errorCode: row.error_code, errorMessage: row.error_message, createdAt: row.created_at.toISOString(), updatedAt: row.updated_at.toISOString() }; }
-export async function createProject(input: { title: string; filename: string; mimeType: string; settings: ProcessingSettings }): Promise<ProjectRecord> { const row = await one<ProjectRow>("INSERT INTO projects(id,title,original_filename,mime_type,settings,status) VALUES($1,$2,$3,$4,$5,'draft') RETURNING *", [randomUUID(), input.title, input.filename, input.mimeType, input.settings]); if (!row) throw new Error("Project creation failed"); return project(row); }
-export async function getProject(id: string): Promise<ProjectRecord | null> { const row = await one<ProjectRow>("SELECT * FROM projects WHERE id=$1", [id]); return row ? project(row) : null; }
-export async function listProjects(): Promise<ProjectRecord[]> { return (await query<ProjectRow>("SELECT * FROM projects ORDER BY updated_at DESC LIMIT 100")).map(project); }
+type ProjectRow = { id: string; title: string; status: ProjectStatus; original_filename: string; mime_type: string; bytes: string; duration_ms: number | null; width: number | null; height: number | null; settings: ProcessingSettings; error_code: string | null; error_message: string | null; created_at: Date; updated_at: Date; job_stage: string | null; job_progress: number | null; };
+// Pulls in the latest processing_jobs row (stage + progress) for this project, via
+// the existing processing_jobs(project_id, created_at DESC) index, so the API and
+// frontend can show the real pipeline stage instead of a guessed/hardcoded number.
+const PROJECT_WITH_JOB_SQL = `
+  SELECT p.*, j.stage AS job_stage, j.progress AS job_progress
+  FROM projects p
+  LEFT JOIN LATERAL (
+    SELECT stage, progress FROM processing_jobs
+    WHERE project_id = p.id
+    ORDER BY created_at DESC
+    LIMIT 1
+  ) j ON true
+`;
+function project(row: ProjectRow): ProjectRecord { return { id: row.id, title: row.title, status: row.status, originalFilename: row.original_filename, mimeType: row.mime_type, bytes: Number(row.bytes), durationMs: row.duration_ms, width: row.width, height: row.height, settings: row.settings, errorCode: row.error_code, errorMessage: row.error_message, createdAt: row.created_at.toISOString(), updatedAt: row.updated_at.toISOString(), jobStage: row.job_stage, jobProgress: row.job_progress }; }
+export async function createProject(input: { title: string; filename: string; mimeType: string; settings: ProcessingSettings }): Promise<ProjectRecord> { const row = await one<ProjectRow>("INSERT INTO projects(id,title,original_filename,mime_type,settings,status) VALUES($1,$2,$3,$4,$5,'draft') RETURNING *, NULL::text AS job_stage, NULL::int AS job_progress", [randomUUID(), input.title, input.filename, input.mimeType, input.settings]); if (!row) throw new Error("Project creation failed"); return project(row); }
+export async function getProject(id: string): Promise<ProjectRecord | null> { const row = await one<ProjectRow>(`${PROJECT_WITH_JOB_SQL} WHERE p.id=$1`, [id]); return row ? project(row) : null; }
+export async function listProjects(): Promise<ProjectRecord[]> { return (await query<ProjectRow>(`${PROJECT_WITH_JOB_SQL} ORDER BY p.updated_at DESC LIMIT 100`)).map(project); }
 export async function setProjectStatus(id: string, status: ProjectStatus, details: { durationMs?: number; width?: number; height?: number; bytes?: number; errorCode?: string | null; errorMessage?: string | null } = {}): Promise<void> { await query("UPDATE projects SET status=$2::project_status,duration_ms=COALESCE($3,duration_ms),width=COALESCE($4,width),height=COALESCE($5,height),bytes=COALESCE($6,bytes),error_code=$7,error_message=$8,updated_at=now() WHERE id=$1", [id, status, details.durationMs ?? null, details.width ?? null, details.height ?? null, details.bytes ?? null, details.errorCode ?? null, details.errorMessage ?? null]); }
 export async function updateSettings(id: string, settings: ProcessingSettings): Promise<void> { await query("UPDATE projects SET settings=$2,updated_at=now() WHERE id=$1", [id, settings]); }
 export async function createAsset(projectId: string, kind: AssetKind, storageKey: string, mimeType: string, bytes = 0, metadata: Record<string, unknown> = {}, expiresAt?: Date): Promise<string> { const id = randomUUID(); const row = await one<{ id: string }>("INSERT INTO media_assets(id,project_id,kind,storage_key,mime_type,bytes,metadata,expires_at) VALUES($1,$2,$3::asset_kind,$4,$5,$6,$7,$8) ON CONFLICT(storage_key) DO UPDATE SET bytes=EXCLUDED.bytes,metadata=EXCLUDED.metadata,expires_at=EXCLUDED.expires_at RETURNING id", [id, projectId, kind, storageKey, mimeType, bytes, metadata, expiresAt ?? null]); if (!row) throw new Error("Asset write failed"); return row.id; }

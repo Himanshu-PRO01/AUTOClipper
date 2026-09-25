@@ -12,7 +12,7 @@ export class FasterWhisperProvider implements TranscriptionProvider {
   async transcribe(audioPath: string, language?: string): Promise<TranscriptSegment[]> {
     const here = dirname(fileURLToPath(import.meta.url));
     const script = resolve(here, "../../scripts/transcribe.py");
-    const args = [script, "--audio", audioPath, "--model", config.FASTER_WHISPER_MODEL];
+    const args = [script, "--audio", audioPath, "--model", config.FASTER_WHISPER_MODEL, "--device", config.WHISPER_DEVICE];
     if (language) args.push("--language", language);
 
     const output = await new Promise<string>((resolvePromise, reject) => {

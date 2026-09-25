@@ -8,8 +8,10 @@ import {
   createJob,
   createExport,
   getAsset,
+  getTranscript,
 } from "../../db/repository.js";
 import { mediaQueue } from "../../queue.js";
+import { buildCaptionCues } from "../../media/captions.js";
 
 const updateClipSchema = z.object({
   title: z.string().min(1).max(120).optional(),
@@ -92,6 +94,28 @@ export const clipRoutes: FastifyPluginAsync = async (app) => {
     await updateClip(clip.id, patch);
     return reply.send({ ok: true });
   });
+
+  // Live caption cues for the editor preview overlay. This never touches ffmpeg —
+  // it just re-chunks the already-transcribed words for this clip's time range, so
+  // the editor can render a synced caption overlay instantly instead of needing a
+  // fresh video render every time the user tries a different caption style.
+  app.get<{ Params: { id: string }; Querystring: { style?: string } }>(
+    "/clips/:id/caption-cues",
+    async (req, reply) => {
+      const clip = await getClip(req.params.id);
+      if (!clip) return reply.status(404).send({ error: "Clip not found" });
+
+      const validStyles = ["bold", "minimal", "karaoke", "none"] as const;
+      const requested = req.query.style;
+      const style = (validStyles as readonly string[]).includes(requested ?? "")
+        ? (requested as (typeof validStyles)[number])
+        : (clip.caption_style as (typeof validStyles)[number]);
+
+      const transcript = await getTranscript(clip.project_id);
+      const cues = buildCaptionCues(transcript, clip.start_ms, clip.end_ms, style);
+      return reply.send(cues);
+    }
+  );
 
   // Trigger export for a clip
   app.post<{ Params: { id: string } }>("/clips/:id/export", async (req, reply) => {

@@ -173,13 +173,17 @@ async function processAnalysis(payload: Extract<WorkerPayload, { kind: "analyze"
         );
       }
 
+      // Draft preview is rendered WITHOUT burned-in captions. The web editor overlays
+      // captions live (via GET /clips/:id/caption-cues) so switching caption styles is
+      // instant and doesn't need a re-render. Real captions get burned in only once,
+      // at final export time, using whatever style is saved on the clip at that point.
       await renderClip(sourcePath, previewPath, {
         startMs: clip.startMs,
         endMs: clip.endMs,
         ratio: project.settings.aspectRatio,
         quality: "draft",
         srtPath,
-        captionStyle: project.settings.captionStyle,
+        captionStyle: "none",
         cropMode: faceResult.detected ? "face" : "center",
         normalizedX: faceResult.normalizedX,
       });
