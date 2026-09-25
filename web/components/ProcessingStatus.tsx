@@ -52,21 +52,30 @@ export function ProcessingStatus({ project, uploadPercent, onCancel, onReset }: 
   const isFailed = project.status === "failed";
   const isCanceled = project.status === "canceled";
 
+  // Ordered pipeline stages as emitted by the worker (src/worker/processor.ts).
+  // Used to derive which of the 4 UI steps are done from the real jobStage,
+  // instead of comparing against project.status (which is never one of these
+  // stage names, so that comparison could never actually be true).
+  const STAGE_ORDER = [
+    "queued", "validating_source", "creating_analysis_proxy", "transcribing",
+    "detecting_scenes", "ranking_highlights", "rendering_previews", "results_ready",
+  ];
+  const stageIndex = project.jobStage ? STAGE_ORDER.indexOf(project.jobStage) : -1;
+  const reachedStage = (stage: string) => isReady || stageIndex >= STAGE_ORDER.indexOf(stage);
+
   // Steps for the visual pipeline
   const steps = [
     { key: "upload",     label: "Upload",       done: !isUploading },
-    { key: "transcribe", label: "Transcribe",   done: ["rendering_previews","results_ready","ready"].some(s => project.status === s || project.status === "ready") },
-    { key: "analyze",    label: "AI Analysis",  done: project.status === "ready" },
-    { key: "render",     label: "Render Clips", done: project.status === "ready" },
+    { key: "transcribe", label: "Transcribe",   done: reachedStage("detecting_scenes") },
+    { key: "analyze",    label: "AI Analysis",  done: reachedStage("rendering_previews") },
+    { key: "render",     label: "Render Clips", done: isReady },
   ];
 
   const progressValue = isUploading
     ? (uploadPercent ?? 0)
-    : project.status === "ready"
+    : isReady
     ? 100
-    : project.status === "queued"
-    ? 5
-    : 50;
+    : Math.max(project.jobProgress ?? 0, project.status === "queued" ? 5 : 0);
 
   return (
     <div className="proc-card card animate-in">
@@ -97,7 +106,7 @@ export function ProcessingStatus({ project, uploadPercent, onCancel, onReset }: 
             <span className="proc-stage">
               {isUploading
                 ? `Uploading… ${uploadPercent ?? 0}%`
-                : STAGE_LABELS[project.status] ?? "Processing…"}
+                : STAGE_LABELS[project.jobStage ?? ""] ?? STAGE_LABELS[project.status] ?? "Processing…"}
             </span>
             <span className="proc-percent">{progressValue}%</span>
           </div>

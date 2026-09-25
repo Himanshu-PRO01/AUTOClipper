@@ -44,6 +44,9 @@ export interface Project {
   errorMessage: string | null;
   createdAt: string;
   updatedAt: string;
+  /** Real pipeline stage/progress (0-100) from the latest processing job, e.g. "transcribing" / 32. */
+  jobStage: string | null;
+  jobProgress: number | null;
 }
 
 export interface ProcessingSettings {
@@ -74,6 +77,12 @@ export interface Clip {
   aspectRatio: string;
   previewUrl: string | null;
   captionsUrl: string | null;
+}
+
+export interface CaptionCue {
+  startMs: number;
+  endMs: number;
+  text: string;
 }
 
 export interface ClipPatch {
@@ -168,6 +177,13 @@ export async function listClips(projectId: string): Promise<Clip[]> {
 
 export async function patchClip(id: string, patch: ClipPatch): Promise<void> {
   await request("PATCH", `/clips/${id}`, patch);
+}
+
+export async function getCaptionCues(clipId: string): Promise<CaptionCue[]> {
+  // Always request cue text un-uppercased ("bold" chunking); the karaoke
+  // uppercase/visual treatment is applied client-side so switching styles
+  // never needs a new request.
+  return request<CaptionCue[]>("GET", `/clips/${clipId}/caption-cues?style=bold`);
 }
 
 export async function exportClip(id: string): Promise<ExportResponse> {

@@ -1,5 +1,6 @@
-import { useState, useRef } from "react";
-import type { Clip } from "../api/client.js";
+import { useState, useRef, useEffect } from "react";
+import type { Clip, CaptionCue } from "../api/client.js";
+import { getCaptionCues } from "../api/client.js";
 import "./VideoPlayer.css";
 
 interface Props {
@@ -21,9 +22,29 @@ export function VideoPlayer({ clip }: Props) {
   const [muted, setMuted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [cues, setCues] = useState<CaptionCue[]>([]);
 
   const duration = clip.durationMs / 1000;
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+
+  // Fetch caption cues once per clip. Preview video is rendered without
+  // burned-in captions, so this overlay is what actually shows captions —
+  // and it reacts to caption-style changes instantly (no re-fetch, no
+  // re-render), since only CSS/casing differ between bold/minimal/karaoke.
+  useEffect(() => {
+    let cancelled = false;
+    setCues([]);
+    if (!clip.id) return;
+    getCaptionCues(clip.id)
+      .then((result) => { if (!cancelled) setCues(result); })
+      .catch(() => { if (!cancelled) setCues([]); });
+    return () => { cancelled = true; };
+  }, [clip.id]);
+
+  const currentMs = currentTime * 1000;
+  const activeCue = clip.captionStyle !== "none"
+    ? cues.find((c) => currentMs >= c.startMs && currentMs < c.endMs)
+    : undefined;
 
   const toggle = () => {
     const v = videoRef.current;
@@ -87,6 +108,12 @@ export function VideoPlayer({ clip }: Props) {
           playsInline
           preload="metadata"
         />
+
+        {activeCue && (
+          <div className={`caption-overlay caption-style-${clip.captionStyle}`}>
+            <span>{clip.captionStyle === "karaoke" ? activeCue.text.toUpperCase() : activeCue.text}</span>
+          </div>
+        )}
 
         {loading && (
           <div className="player-play-overlay" style={{ pointerEvents: "none" }}>
